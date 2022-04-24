@@ -1,0 +1,15 @@
+.play-field {
+  height: 100%;
+
+  &-svg {
+    background-color: grey;
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    @media (min-aspect-ratio: 1/2) {
+      width: auto;
+      height: 100%;
+    }
+  }
+}
