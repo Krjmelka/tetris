@@ -1,8 +1,16 @@
 .control-panel {
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
 
     svg {
         margin: 0 20px;
+    }
+
+    .left-btn {
+        transform: rotate(180deg);
+    }
+    .down-btn {
+        transform: rotate(90deg);
+        grid-column: 2;
     }
 }

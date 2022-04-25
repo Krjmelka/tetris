@@ -145,7 +145,12 @@ export const PlayField = () => {
           onRotateBtnClick={() => {
             figure && setFigurePosition(figure.rotate())
           }}
-        />
+          onDownBtnClick={() => {
+            figure && setFigurePosition(
+              figure.move(EAllowedKeyCode.ArrowDown, undefined, filledData)
+            )
+        }}
+      />
       </div>
     </div>
   );
