@@ -17,6 +17,7 @@ import {
   cutFilledRows,
   generateNewRandomFigure,
 } from "../../helpers/figure.helper";
+import {ControlPanel} from "../ControlPanel/ControlPanel";
 
 export const PlayField = () => {
   const [figure, setFigure] = useState<TTetrimino | null>(null);
@@ -129,6 +130,23 @@ export const PlayField = () => {
           <FilledArea filledData={filledDataParsed} />
         )}
       </svg>
+      <div className="play-field-info">
+        <ControlPanel
+          onLeftBtnClick={() => {
+            figure && setFigurePosition(
+                figure.move(EAllowedKeyCode.ArrowLeft, undefined, filledData)
+              )
+          }}
+          onRightBtnClick={() => {
+              figure && setFigurePosition(
+                figure.move(EAllowedKeyCode.ArrowRight, undefined, filledData)
+              )
+          }}
+          onRotateBtnClick={() => {
+            figure && setFigurePosition(figure.rotate())
+          }}
+        />
+      </div>
     </div>
   );
 };
