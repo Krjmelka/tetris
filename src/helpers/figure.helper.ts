@@ -1,17 +1,30 @@
-import {COLUMNS_COUNT, ROWS_COUNT, tetriminoStartPositions} from "./constants";
+import {
+  COLUMNS_COUNT,
+  ROWS_COUNT,
+  tetriminoStartPositions,
+  tetriminoClassMap,
+} from "./constants";
 import {
   EAllowedKeyCode,
   ETetrimino,
   TFigurePosition,
+  TFilledArea,
   TPosition,
 } from "../components/PlayField/types";
 
+export const random = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min)) + min;
 export class Figure {
   type: ETetrimino;
   position: TFigurePosition = [];
   protected rotatedDeg: number = 0;
-  constructor(type: ETetrimino) {
+  onFigurePositionEndCb: (data: TFigurePosition, type: ETetrimino) => void;
+  constructor(
+    type: ETetrimino,
+    cb: (data: TFigurePosition, type: ETetrimino) => void
+  ) {
     this.type = type;
+    this.onFigurePositionEndCb = cb;
   }
 
   draw(): TFigurePosition {
@@ -20,7 +33,11 @@ export class Figure {
     return figurePosition;
   }
 
-  move(direction: EAllowedKeyCode, offset = 1): TFigurePosition {
+  move(
+    direction: EAllowedKeyCode,
+    offset = 1,
+    filledAreaData?: TFilledArea
+  ): TFigurePosition {
     switch (direction) {
       case EAllowedKeyCode.ArrowLeft:
         if (this.position.some(({x}) => x === 1 || x - offset < 1)) {
@@ -30,8 +47,15 @@ export class Figure {
             x: x - offset,
             y,
           }));
-          this.position = updatedPosition;
-          return updatedPosition;
+          if (
+            filledAreaData &&
+            this.checkIfFigurePositionEnded(updatedPosition, filledAreaData)
+          ) {
+            return this.position;
+          } else {
+            this.position = updatedPosition;
+            return updatedPosition;
+          }
         }
       case EAllowedKeyCode.ArrowRight:
         if (
@@ -45,8 +69,15 @@ export class Figure {
             x: x + offset,
             y,
           }));
-          this.position = updatedPosition;
-          return updatedPosition;
+          if (
+            filledAreaData &&
+            this.checkIfFigurePositionEnded(updatedPosition, filledAreaData)
+          ) {
+            return this.position;
+          } else {
+            this.position = updatedPosition;
+            return updatedPosition;
+          }
         }
       case EAllowedKeyCode.ArrowDown:
         if (
@@ -54,14 +85,23 @@ export class Figure {
             ({y}) => y === ROWS_COUNT || y + offset > ROWS_COUNT
           )
         ) {
+          this.onFigurePositionEndCb(this.position, this.type);
           return this.position;
         } else {
           const updatedPosition = this.position.map<TPosition>(({x, y}) => ({
             x,
             y: y + offset,
           }));
-          this.position = updatedPosition;
-          return updatedPosition;
+          if (
+            filledAreaData &&
+            this.checkIfFigurePositionEnded(updatedPosition, filledAreaData)
+          ) {
+            this.onFigurePositionEndCb(this.position, this.type);
+            return this.position;
+          } else {
+            this.position = updatedPosition;
+            return updatedPosition;
+          }
         }
       case EAllowedKeyCode.ArrowUp:
         if (this.position.some(({y}) => y === 1 || y - offset < 1)) {
@@ -78,6 +118,16 @@ export class Figure {
       default:
         return this.position;
     }
+  }
+
+  checkIfFigurePositionEnded(
+    figurePosition: TFigurePosition,
+    filledAreaData: TFilledArea
+  ): boolean {
+    const matchCells = figurePosition.filter((figure) =>
+      filledAreaData.some((item) => item.x === figure.x && item.y === figure.y)
+    );
+    return !!matchCells.length;
   }
 
   updateRotatedFigureWithOffset(
@@ -115,3 +165,48 @@ export class Figure {
     }
   }
 }
+
+export const generateNewRandomFigure = (
+  cb: (data: TFigurePosition, type: ETetrimino) => void
+) => {
+  const figureKeys = Object.keys(ETetrimino) as ETetrimino[];
+  const randomKey = figureKeys[random(0, figureKeys.length)];
+  return new tetriminoClassMap[randomKey](cb);
+};
+
+export const cutFilledRows = (filledData: TFilledArea): TFilledArea => {
+  const filledRowsCount = filledData.reduce((acc, curr) => {
+    if (acc[curr.y]) {
+      acc[curr.y] += 1;
+      return acc;
+    } else {
+      acc[curr.y] = 1;
+      return acc;
+    }
+  }, {} as Record<number, number>);
+
+  const rowsToCut = Object.entries(filledRowsCount).reduce(
+    (acc, [row, count]) => {
+      if (count === 10) {
+        return [...acc, +row];
+      } else {
+        return acc;
+      }
+    },
+    [] as number[]
+  );
+
+  const rowCutStart = Math.min.apply(Math, rowsToCut);
+
+  if (!rowsToCut.length) return filledData;
+
+  return filledData.reduce<TFilledArea>((acc, curr) => {
+    if (rowsToCut.some((item) => item === curr.y)) {
+      return acc;
+    } else if (curr.y < rowCutStart) {
+      return [...acc, {...curr, y: curr.y + rowsToCut.length}];
+    } else {
+      return [...acc, {...curr}];
+    }
+  }, []);
+};

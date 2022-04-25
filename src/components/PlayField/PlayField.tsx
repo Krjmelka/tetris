@@ -1,24 +1,31 @@
-import React, {useEffect, useState, useCallback} from "react";
+import React, {useEffect, useState, useCallback, useMemo} from "react";
+import _ from "lodash";
 import "./PlayField.scss";
 
-// import { Tetrimino_I } from "../../helpers/tetrimino_I.helper";
-// import { Tetrimino_O } from "../../helpers/tetrimino_O.helper";
-// import {Tetrimino_T} from "../../helpers/tetrimino_T.helper";
-import {TTetrimino} from "./types";
-import {EAllowedKeyCode, TFigurePosition} from "./types";
+import {
+  ETetrimino,
+  TFilledArea,
+  TFilledCell,
+  TTetrimino,
+  TFigurePosition,
+  EAllowedKeyCode,
+} from "./types";
 import {Figure} from "../Figure/Figure";
 import {CELL_SIZE, COLUMNS_COUNT, ROWS_COUNT} from "../../helpers/constants";
-// import { Tetrimino_S } from "../../helpers/tetrimino_S.helper";
-// import { Tetrimino_Z } from "../../helpers/tetrimino_Z.helper";
-// import { Tetrimino_J } from "../../helpers/tetrimino_J.helper";
-import { Tetrimino_L } from "../../helpers/tetrimino_L.helper";
+import {FilledArea} from "../FilledArea/FilledArea";
+import {
+  cutFilledRows,
+  generateNewRandomFigure,
+} from "../../helpers/figure.helper";
 
 export const PlayField = () => {
   const [figure, setFigure] = useState<TTetrimino | null>(null);
   const [figurePosition, setFigurePosition] = useState<TFigurePosition | null>(
     null
   );
+  const [intervalId, setIntervalId] = useState<number | null>(null);
   const [tick, setTick] = useState<number | null>(null);
+  const [filledData, setFilledData] = useState<TFilledArea>([]);
 
   const handleKeyUp = useCallback(
     (e: KeyboardEvent) => {
@@ -26,20 +33,52 @@ export const PlayField = () => {
       if (Object.values(EAllowedKeyCode).some((code) => code === e.code)) {
         if (e.code === EAllowedKeyCode.ArrowUp) {
           setFigurePosition(figure.rotate());
-          console.log(figure);
         } else {
-          setFigurePosition(figure.move(e.code as EAllowedKeyCode));
+          setFigurePosition(
+            figure.move(e.code as EAllowedKeyCode, undefined, filledData)
+          );
         }
       }
     },
-    [figure]
+    [figure, filledData]
   );
 
-  useEffect(() => {
-    const figure = new Tetrimino_L();
+  const handleOnFigurePositionEnd = useCallback(
+    (figurePosition: TFigurePosition, type: ETetrimino) => {
+      const dataToFill = figurePosition.map<TFilledCell>((position) => ({
+        ...position,
+        type,
+      }));
+      setFilledData((prev) => [...prev, ...dataToFill]);
+      setFigure(null);
+      setFigurePosition(null);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intervalId]
+  );
+
+  const createNewFigure = useCallback(() => {
+    const figure = generateNewRandomFigure(handleOnFigurePositionEnd);
     setFigure(figure);
-    setFigurePosition(figure.draw());
-  }, []);
+    const figurePosition = figure.draw();
+    if (figure.checkIfFigurePositionEnded(figurePosition, filledData)) {
+      window.clearInterval(intervalId as number);
+      setIntervalId(null);
+      setFigure(null);
+      setFigurePosition(null);
+      window.alert("GAME OVER");
+    } else {
+      setFigurePosition(figurePosition);
+    }
+  }, [handleOnFigurePositionEnd, filledData, intervalId]);
+
+  useEffect(() => {
+    if (intervalId) {
+      createNewFigure();
+    } else {
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intervalId, createNewFigure]);
 
   useEffect(() => {
     document.addEventListener("keyup", handleKeyUp);
@@ -50,18 +89,32 @@ export const PlayField = () => {
     const intervalId = window.setInterval(() => {
       setTick(Date.now());
     }, 1000);
+    setIntervalId(intervalId);
 
     return () => {
       window.clearInterval(intervalId);
+      setIntervalId(null);
     };
   }, []);
 
+  useEffect(() => {
+    if (tick && figure) {
+      setFigurePosition(
+        figure.move(EAllowedKeyCode.ArrowDown, undefined, filledData)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, figure]);
+
+  const filledDataParsed = useMemo(() => {
+    return !!filledData.length ? cutFilledRows(filledData) : [];
+  }, [filledData]);
 
   useEffect(() => {
-    if(tick && figure) {
-        setFigurePosition(figure.move(EAllowedKeyCode.ArrowDown))
+    if (!_.isEqual(filledData, filledDataParsed)) {
+      setFilledData(filledDataParsed);
     }
-  }, [tick, figure])
+  }, [filledData, filledDataParsed]);
 
   return (
     <div className="play-field">
@@ -69,7 +122,12 @@ export const PlayField = () => {
         className="play-field-svg"
         viewBox={`0 0 ${COLUMNS_COUNT * CELL_SIZE} ${ROWS_COUNT * CELL_SIZE}`}
       >
-        {figure && figurePosition && <Figure position={figurePosition} type={figure.type} />}
+        {figure && figurePosition && (
+          <Figure position={figurePosition} type={figure.type} />
+        )}
+        {!!filledDataParsed.length && (
+          <FilledArea filledData={filledDataParsed} />
+        )}
       </svg>
     </div>
   );

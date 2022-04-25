@@ -2,8 +2,8 @@ import {Figure} from "./figure.helper";
 import {ETetrimino, TFigurePosition} from "../components/PlayField/types";
 
 export class Tetrimino_L extends Figure {
-  constructor() {
-    super(ETetrimino.L);
+  constructor(cb: (data: TFigurePosition, type: ETetrimino) => void ) {
+    super(ETetrimino.L, cb);
   }
 
   rotate(): TFigurePosition {

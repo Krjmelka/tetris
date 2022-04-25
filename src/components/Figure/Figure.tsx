@@ -20,7 +20,7 @@ export const Figure = ({position, type}: TFigureProps) => {
           transform={`translate(${(cell.x - 1) * CELL_SIZE}, ${
             (cell.y - 1) * CELL_SIZE
           })`}
-          className={classNames('figure', `figure--${type}`)}
+          className={classNames('cell', `cell--${type}`)}
         />
       ))}
     </>

@@ -11,6 +11,12 @@ export type TPosition = {
   y: number;
 };
 
+export type TFilledCell = {
+  type: ETetrimino
+} & TPosition
+
+export type TFilledArea = TFilledCell[]
+
 export enum ETetrimino {
   I = "I",
   O = "O",
@@ -37,10 +43,10 @@ export enum EAllowedKeyCode {
   ArrowUp = "ArrowUp",
 }
 
-export type TTetrimino = Tetrimino_I &
-  Tetrimino_O &
-  Tetrimino_T &
-  Tetrimino_S &
-  Tetrimino_Z &
-  Tetrimino_J &
+export type TTetrimino = Tetrimino_I |
+  Tetrimino_O |
+  Tetrimino_T |
+  Tetrimino_S |
+  Tetrimino_Z |
+  Tetrimino_J |
   Tetrimino_L;
